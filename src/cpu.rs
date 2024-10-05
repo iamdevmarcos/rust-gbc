@@ -1,3 +1,5 @@
+use crate::memory::Memory;
+
 const INITIAL_PC: u16 = 0x0100;
 const INITIAL_SP: u16 = 0xFFFE;
 
@@ -17,6 +19,7 @@ pub struct CPU {
   pub f: u8,
   pub pc: u16,
   pub sp: u16,
+  pub memory: Memory,
 }
 
 impl CPU {
@@ -32,6 +35,7 @@ impl CPU {
       f: 0,
       pc: INITIAL_PC,
       sp: INITIAL_SP,
+      memory: Memory::new(),
     }
   }
 
@@ -71,7 +75,25 @@ impl CPU {
     }
   }
 
-  pub fn add(&mut self, value: u8) {
+  pub fn show_cpu_state(&self) {
+    println!("A: {:02X}, B: {:02X}, C: {:02X}", self.a, self.b, self.c);
+    println!("D: {:02X}, E: {:02X}, H: {:02X}, L: {:02X}, F: {:02X}", self.d, self.e, self.h, self.l, self.f);
+    println!("PC: {:04X}, SP: {:04X}", self.pc, self.sp);
+  }
+
+  pub fn load_a(&mut self, value: u8) {
+    self.a = value;
+  }
+
+  pub fn load_b(&mut self, value: u8) {
+    self.b = value;
+  }
+
+  pub fn load_c(&mut self, value: u8) {
+    self.c = value;
+  }
+
+  pub fn add_to_a(&mut self, value: u8) {
     let (result, carry) = self.a.overflowing_add(value);
     self.a = result;
 
@@ -81,9 +103,45 @@ impl CPU {
     self.set_subtract_flag(false);
   }
 
-  pub fn show_cpu_state(&self) {
-    println!("A: {:02X}, B: {:02X}, C: {:02X}", self.a, self.b, self.c);
-    println!("D: {:02X}, E: {:02X}, H: {:02X}, L: {:02X}, F: {:02X}", self.d, self.e, self.h, self.l, self.f);
-    println!("PC: {:04X}, SP: {:04X}", self.pc, self.sp);
+  pub fn sub_from_a(&mut self, value: u8) {
+    let (result, carry) = self.a.overflowing_sub(value);
+    self.a = result;
+
+    self.set_zero_flag(self.a == 0);
+    self.set_carry_flag(carry);
+    self.set_half_carry_flag((self.a & 0x0F) + (value & 0x0F) > 0x0F);
+    self.set_subtract_flag(true);
+  }
+
+  pub fn execute_instruction(&mut self, opcode: u8) {
+    match opcode {
+      0x3E => {
+        let value = self.fetch_byte();
+        self.load_a(value);
+      }
+      0x06 => {
+        let value = self.fetch_byte();
+        self.load_b(value);
+      }
+      0x0E => {
+        let value = self.fetch_byte();
+        self.load_c(value);
+      }
+      0x87 => {
+        self.add_to_a(self.a);
+      }
+      0x90 => {
+        self.sub_from_a(self.b);
+      }
+      _ => {
+        println!("Unimplemented opcode: {:02X} at PC: {}", opcode, self.pc - 1);
+      }
+    }
+  }
+
+  pub fn fetch_byte(&mut self) -> u8 {
+    let opcode = self.memory.read_byte(self.pc);
+    self.pc += 1;
+    opcode
   }
 }
