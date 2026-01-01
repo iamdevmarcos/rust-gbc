@@ -242,15 +242,6 @@ cargo test
 cargo check
 ```
 
-### Code Style
-
-The codebase follows these principles:
-
-- **Self-documenting code**: Clear naming over comments
-- **Minimal comments**: Only for complex algorithms
-- **Type safety**: Leveraging Rust's type system
-- **No emojis**: Clean, professional code style
-
 ## References
 
 This project was built with knowledge from the following resources:
